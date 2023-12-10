@@ -61,8 +61,8 @@ class Pipe:
             return None
         
         rightHandCount = 0
-        insideCells = set()
-        outsideCells = set()
+        rightHandCells = set()
+        leftHandCells = set()
         
         # get an ordering with S at the end
         startIndex = self.parts.index([p for p in self.parts if p.isStart][0]) + 1
@@ -78,10 +78,10 @@ class Pipe:
             next = path[i+1]
             
             if(dir == "N"):
-                insideCells.add((current.x+1, current.y))
-                insideCells.add((current.x+1, current.y-1))
-                outsideCells.add((current.x-1, current.y))
-                outsideCells.add((current.x-1, current.y-1))
+                rightHandCells.add((current.x+1, current.y))
+                rightHandCells.add((current.x+1, current.y-1))
+                leftHandCells.add((current.x-1, current.y))
+                leftHandCells.add((current.x-1, current.y-1))
                 if(next.connectsEast):
                     rightHandCount += 1
                     dir = "E"
@@ -89,10 +89,10 @@ class Pipe:
                     rightHandCount -= 1
                     dir = "W"
             elif(dir == "S"):
-                insideCells.add((current.x-1, current.y))
-                insideCells.add((current.x-1, current.y+1))
-                outsideCells.add((current.x+1, current.y))
-                outsideCells.add((current.x+1, current.y+1))
+                rightHandCells.add((current.x-1, current.y))
+                rightHandCells.add((current.x-1, current.y+1))
+                leftHandCells.add((current.x+1, current.y))
+                leftHandCells.add((current.x+1, current.y+1))
                 if(next.connectsEast):
                     rightHandCount -= 1
                     dir = "E"
@@ -100,10 +100,10 @@ class Pipe:
                     rightHandCount += 1
                     dir = "W"
             elif(dir == "E"):
-                insideCells.add((current.x, current.y+1))
-                insideCells.add((current.x+1, current.y+1))
-                outsideCells.add((current.x, current.y-1))
-                outsideCells.add((current.x+1, current.y-1))
+                rightHandCells.add((current.x, current.y+1))
+                rightHandCells.add((current.x+1, current.y+1))
+                leftHandCells.add((current.x, current.y-1))
+                leftHandCells.add((current.x+1, current.y-1))
                 if(next.connectsNorth):
                     rightHandCount -= 1
                     dir = "N"
@@ -111,10 +111,10 @@ class Pipe:
                     rightHandCount += 1
                     dir = "S"
             elif(dir == "W"):
-                insideCells.add((current.x, current.y-1))
-                insideCells.add((current.x-1, current.y-1))
-                outsideCells.add((current.x, current.y+1))
-                outsideCells.add((current.x-1, current.y+1))
+                rightHandCells.add((current.x, current.y-1))
+                rightHandCells.add((current.x-1, current.y-1))
+                leftHandCells.add((current.x, current.y+1))
+                leftHandCells.add((current.x-1, current.y+1))
                 if(next.connectsNorth):
                     rightHandCount += 1
                     dir = "N"
@@ -122,21 +122,21 @@ class Pipe:
                     rightHandCount -= 1
                     dir = "S"
         
-        # assertions - this code is buggy right now, I get the right answer but the path has five more right turns than left strangely.
-        #if(rightHandCount not in [-3,-4,3,4]): raise Exception(f"Path is not closed (rightHandCount: {rightHandCount})")
+        # assertion - check that we've got 4 or -4 more right turns than left for a complete path with right angle turns.
+        #             Bug: because we don't count S the count can be off by one, so ±3:5
+        if(abs(rightHandCount) not in [3,4,5]): raise Exception(f"Path is not closed (rightHandCount: {rightHandCount})")
         isRightHanded = rightHandCount > 0
 
-        if(not isRightHanded):
-            temp = insideCells
-            insideCells = outsideCells
-            outsideCells = temp
+        insideCells = rightHandCells if isRightHanded else leftHandCells
+        outsideCells = leftHandCells if isRightHanded else rightHandCells
 
-        # remove cells that are outside the map or part of the pipe
+        # remove cells with coordinates outside the map or are part of the pipe
         pipeCords = set([(p.x, p.y) for p in self.parts])
         insideCells = [cell for cell in insideCells if cell[0] >= 0 and cell[0] < maxX and cell[1] >= 0 and cell[1] < maxY and cell not in pipeCords]
         outsideCells = [cell for cell in outsideCells if cell[0] >= 0 and cell[0] < maxX and cell[1] >= 0 and cell[1] < maxY and cell not in pipeCords]
 
-        # assert no cells are marked right and left
+        # assertion - check that no cells are marked both left and right
+        #             After all, the path-following algo is pretty shonky.
         for cell in insideCells:
             if cell in outsideCells:
                 raise Exception("Cell is both right and left handed")
@@ -147,8 +147,8 @@ class Pipe:
         for cell in outsideCells:
             map[cell[1]][cell[0]].enclosed = False
 
-        # cells not part of main pipe
-
+        # iterate over the remaining cells until all are marked by checking with neighbours
+        # This could be simplified but I wanted to detect possible errors in previous logic
         remainingCells = [cell for row in map for cell in row if cell.coords not in pipeCords and cell.enclosed == None]
         remainingCellCount = len(remainingCells)
         while(remainingCellCount > 0):
