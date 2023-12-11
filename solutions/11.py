@@ -44,7 +44,7 @@ class Space:
 
 
 map = None
-fileName = "11.txt"
+fileName = "./2023/11.txt"
 with open(fileName, "r") as file:
     map = [line.strip() for line in file.readlines()]
 
