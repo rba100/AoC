@@ -78,5 +78,4 @@ remaining = 1000000000 - phase
 for i in range(phase + (remaining % period)):
     npTable = spinCycle(npTable)
 load = getLoad(npTable)
-#for l in rolled: print(l)
 print(load)
