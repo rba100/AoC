@@ -24,7 +24,7 @@ def getValidOffsets(pattern: str, run: int) -> ([int]):
         validOffsets.append(offset)
     return validOffsets
 
-#@cache
+@cache
 def countArrangementsRecursively(pattern: str, runs: [int]):
     validArrangements = 0
     run = runs[0]
